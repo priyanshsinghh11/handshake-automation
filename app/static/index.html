@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Assessment Automation</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="container topbar-inner">
+      <span class="brand">Assessment Automation</span>
+      <nav class="nav" aria-label="Sections">
+        <a href="#applications" data-view="applications">Applications</a>
+        <a href="#mappings" data-view="mappings">Mappings</a>
+        <a href="#test" data-view="test">Test application</a>
+      </nav>
+      <a class="docs-link" href="/docs" target="_blank" rel="noopener">API docs</a>
+    </div>
+  </header>
+
+  <main class="container">
+    <div id="notice" class="notice" role="status" aria-live="polite" hidden>
+      <span id="notice-text"></span>
+      <button type="button" id="notice-close" class="link-button">Dismiss</button>
+    </div>
+
+    <!-- Applications -->
+    <section id="view-applications" hidden>
+      <div class="section-head">
+        <h1>Applications</h1>
+        <div class="toolbar">
+          <label class="inline-field">
+            <span>Status</span>
+            <select id="status-filter">
+              <option value="">All</option>
+              <option value="EMAIL_SENT">Email sent</option>
+              <option value="FAILED">Failed</option>
+              <option value="ASSESSMENT_CREATED">Assessment created</option>
+              <option value="PROCESSING">Processing</option>
+              <option value="RECEIVED">Received</option>
+            </select>
+          </label>
+          <button type="button" id="refresh" class="button">Refresh</button>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th class="col-id">ID</th>
+              <th>Candidate</th>
+              <th>Job</th>
+              <th>Status</th>
+              <th>Received</th>
+              <th>Processed</th>
+              <th><span class="visually-hidden">Actions</span></th>
+            </tr>
+          </thead>
+          <tbody id="applications-body"></tbody>
+        </table>
+        <p id="applications-empty" class="empty" hidden></p>
+      </div>
+      <p id="applications-count" class="hint"></p>
+    </section>
+
+    <!-- Mappings -->
+    <section id="view-mappings" hidden>
+      <div class="section-head">
+        <h1>Mappings</h1>
+      </div>
+      <p class="lead">A mapping decides which assessment a job's applicants receive, and the email that carries the link.</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Job</th>
+              <th>Assessment</th>
+              <th>Email</th>
+              <th><span class="visually-hidden">Actions</span></th>
+            </tr>
+          </thead>
+          <tbody id="mappings-body"></tbody>
+        </table>
+        <p id="mappings-empty" class="empty" hidden>No active mappings. Applications for unmapped jobs are marked Failed.</p>
+      </div>
+
+      <h2>Add a mapping</h2>
+      <form id="mapping-form" class="form">
+        <div class="field-row">
+          <label class="field">
+            <span>Job</span>
+            <select id="mapping-job" required></select>
+          </label>
+          <label class="field">
+            <span>Assessment</span>
+            <select id="mapping-assessment" required></select>
+          </label>
+        </div>
+        <p id="mapping-job-warning" class="hint warning" hidden>This job already has an active mapping, and that one stays in use. Deactivate it first to switch assessments.</p>
+        <p class="hint">A job shows up here once its first application has arrived.</p>
+
+        <label class="field">
+          <span>Email subject</span>
+          <input type="text" id="mapping-subject" required maxlength="500">
+        </label>
+        <label class="field">
+          <span>Email body</span>
+          <textarea id="mapping-body" rows="9" required></textarea>
+        </label>
+        <p class="hint">Replaced when the email is sent: <code>{{candidate_name}}</code>, <code>{{job_title}}</code>, <code>{{assessment_url}}</code></p>
+
+        <div class="form-actions">
+          <button type="submit" class="button primary">Add mapping</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Test application -->
+    <section id="view-test" hidden>
+      <div class="section-head">
+        <h1>Test application</h1>
+      </div>
+      <p class="lead">Sends an application to <code>POST /webhooks/handshake</code>, the same way Handshake would.</p>
+
+      <form id="test-form" class="form">
+        <div class="field-row">
+          <label class="field">
+            <span>Candidate name</span>
+            <input type="text" id="test-name" required autocomplete="off">
+          </label>
+          <label class="field">
+            <span>Candidate email</span>
+            <input type="email" id="test-email" required autocomplete="off">
+          </label>
+        </div>
+        <label class="field">
+          <span>Candidate ID</span>
+          <input type="text" id="test-candidate-id" required autocomplete="off" placeholder="hs_candidate_123">
+        </label>
+
+        <label class="field">
+          <span>Job</span>
+          <select id="test-job"></select>
+        </label>
+        <div id="test-new-job" class="field-row" hidden>
+          <label class="field">
+            <span>Job ID</span>
+            <input type="text" id="test-job-id" autocomplete="off" placeholder="hs_job_456">
+          </label>
+          <label class="field">
+            <span>Job title</span>
+            <input type="text" id="test-job-title" autocomplete="off">
+          </label>
+        </div>
+
+        <label class="field">
+          <span>Webhook secret</span>
+          <input type="password" id="test-secret" required autocomplete="off">
+        </label>
+        <p class="hint">The <code>WEBHOOK_SECRET</code> value from your <code>.env</code>. Kept in this browser tab only.</p>
+
+        <div class="form-actions">
+          <button type="submit" class="button primary">Send application</button>
+        </div>
+      </form>
+
+      <div id="test-result" class="result" hidden></div>
+      <p class="hint">With <code>EMAIL_PROVIDER=mock</code>, the email text is printed in the server terminal instead of being sent.</p>
+    </section>
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
